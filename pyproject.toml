@@ -1,0 +1,7 @@
+[project]
+name = "umbtest"
+version = "1.2.3"
+# ...
+dependencies = [
+    "umbi >= 0.0.2",
+]
