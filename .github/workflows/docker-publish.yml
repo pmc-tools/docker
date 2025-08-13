@@ -25,7 +25,7 @@ env:
 jobs:
   build:
     name: Build on ${{ matrix.platform }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runs-on }}
     permissions:
       contents: read
       packages: write
@@ -33,11 +33,15 @@ jobs:
       # with sigstore/fulcio when running outside of PRs.
       id-token: write
     strategy:
-      fail-fast: false
       matrix:
-        platform:
-          - {name: linux/amd64, runner: "ubuntu-latest"}
-          - {name: linux/arm64, runner: "ubuntu-24.04-arm"}
+        include:
+          # Set defaults
+          - runs-on: ubuntu-latest
+            platform: linux/amd64
+          - runs-on: ubuntu-24.04-arm
+            platform: linux/arm64
+      fail-fast: false
+       
     steps:
     
       - name: Checkout repository
