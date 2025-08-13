@@ -49,8 +49,8 @@ jobs:
       - name: Prepare
         # Sanitize platform name
         run: |
-          platform=${{ matrix.platform.name }}
-          echo "PLATFORM=${platform//\//-}" >> $GITHUB_ENV
+          platform=${{ matrix.platform }}
+          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
 
       # Install the cosign tool except on PR
       # https://github.com/sigstore/cosign-installer
@@ -94,6 +94,7 @@ jobs:
           platforms: ${{ matrix.platform }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
+          outputs: type=image,push-by-digest=true,name-canonical=true,push=true 
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
