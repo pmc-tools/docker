@@ -1,5 +1,9 @@
 import subprocess
 import pathlib
+import umbi
+
+import logging
+logger = logging.getLogger(__name__)
 
 class UmbTool:
     pass
@@ -10,31 +14,52 @@ class ReportedResults:
         self.memout = None
         self.error_code = None
         self.model_info = None
+        self.logfile = None
+
+    def __str__(self):
+        return f"ReportedResults[{self.logfile},{self.error_code},{self.model_info},{self.timeout},{self.memout}]"
 
 
 class PrismCLI(UmbTool):
-    _prism_path = "/opt/prism/prism/bin/prism"
+    prism_dir_path = "/opt/prism/prism/bin/prism"
 
     @staticmethod
-    def _call_prism(log_file : pathlib.Path, args : List[str]):
-        subprocess_result = subprocess.run([PrismCLI._prism_path, "-mainlog", log_file.as_posix()] + args, capture_output=True, text=True)
+    def get_prism_path():
+        return pathlib.Path(__class__.prism_dir_path) /  "prism/bin/prism"
+
+    @staticmethod
+    def get_prism_log_extract_script():
+        return pathlib.Path(__class__.prism_dir_path) / "prism/etc/scripts/prism-log-extract"
+
+    @staticmethod
+    def _call_prism(log_file : pathlib.Path, args : list[str]):
+        subprocess_result = subprocess.run([PrismCLI.get_prism_path().as_posix(), "-mainlog", log_file.as_posix()] + args, capture_output=True, text=True)
         reported_result =  ReportedResults()
         reported_result.timeout = None
         reported_result.memout = None
         reported_result.error_code = subprocess_result.returncode
+        reported_result.logfile = log_file
+        log_subprocess_result = subprocess.run([PrismCLI.get_prism_log_extract_script().as_posix(), "--fields=import_model_file,states,transitions", reported_result.logfile], capture_output=True, text=True)
+        if log_subprocess_result.stderr != "":
+            logger.warning("Issues parsing logfile:  " + log_subprocess_result.stderr)
+        if log_subprocess_result.returncode != 0:
+            logger.warning("Issues parsing logfile yielded error code")
+        data = log_subprocess_result.stdout.split("\n")[1].split(",")
+        reported_result.model_info = {"states": data[1], "transitions": data[2]}
+        return reported_result
 
     @staticmethod
     def prism_file_to_umb(prism_file : pathlib.Path, output_file : pathlib.Path, log_file : pathlib.Path):
-        __class__._call_prism(log_file, [prism_file.as_posix(),
+        return __class__._call_prism(log_file, [prism_file.as_posix(),
                      "-exportmodel", output_file.as_posix()])
 
     @staticmethod
     def check_umb(umb_file : pathlib.Path, log_file : pathlib.Path, properties=[]):
-        __class__._call_prism(log_file, ["-importmodel", umb_file.as_posix()])
+        return __class__._call_prism(log_file, ["-importmodel", umb_file.as_posix()])
 
     @staticmethod
     def umb_to_umb(input_file : pathlib.Path, output_file : pathlib.Path, log_file : pathlib.Path):
-        __class__._call_prism(log_file, ["-importmodel", input_file.as_posix(),
+        return __class__._call_prism(log_file, ["-importmodel", input_file.as_posix(),
                         "-exportmodel", output_file.as_posix()])
 
 
@@ -93,7 +118,6 @@ def try_parse(log, start, before, after, out_dict, out_key, out_type):
 
 
 def parse_logfile(log, inv):
-    print(log)
     unsupported_messages = []  # add messages that indicate that the invocation is not supported
     inv["not-supported"] = contains_any_of(log, unsupported_messages)
     memout_messages = []  # add messages that indicate that the invocation is not supported
@@ -120,18 +144,12 @@ def parse_logfile(log, inv):
     pos = try_parse(log, pos, "Choices: \t", "\n", inv["input-model"], "choices", int)
     pos = try_parse(log, pos, "Observations: \t", "\n", inv["input-model"], "observations", int)
 
-    # pos = log.find("Analyzing property ", pos)
-    # if pos < 0:
-    #     assert inv["memout"] or inv["timeout"], "Unable to find query output in {}".format(inv["id"])
-    #     return
-
-    # pos = try_parse(log, pos, "\nResult: ", "\n", inv, "result", str)
-
-    # assert inv["memout"] or inv["timeout"] or ("result" in inv and "total-chk-time" in inv), "Unable to find result or total-chk-time in {}".format(inv["id"]);
-
 
 class UmbPython(UmbTool):
     @staticmethod
     def umb_to_umb(input_file  : pathlib.Path, output_file  : pathlib.Path, log_file : pathlib.Path):
          ast = umbi.read_umb(input_file)
          umbi.write_umb(ast, output_file)
+         reported_results = ReportedResults()
+         reported_results.model_info = ast.info.transition_system
+         return reported_results
