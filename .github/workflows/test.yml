@@ -52,7 +52,7 @@ jobs:
         run: docker run -d -it --name ci pmctools/umbi:ci
 
       - name: Run tests
-        run: docker exec ci bash -c "cd /opt/umb; pytest --junit-xml=test-results.xml tests"
+        run: docker exec ci bash -c "cd /opt/umb; python -m pytest --junit-xml=test-results.xml tests"
 
       - name: Download test results
         if: always()
