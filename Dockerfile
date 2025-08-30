@@ -101,9 +101,10 @@ ARG storm_build_type=Release
 ARG no_threads=1
 #
 # For storm: libarchive-dev and ninja-build
+# For prism: default-jdk
 RUN apt-get update -qq \
  && apt-get install -yqq --no-install-recommends \
-    libarchive-dev ninja-build \
+    libarchive-dev ninja-build libboost-iostreams-dev \
     default-jdk
 
 
@@ -122,9 +123,7 @@ WORKDIR /opt/storm/build
 RUN cmake -GNinja -DCMAKE_BUILD_TYPE=$storm_build_type \
           -DSTORM_PORTABLE=ON \
           -DSTORM_USE_LTO=OFF \
-          -DSTORM_DISABLE_MATHSAT=ON \
           -DSTORM_DEVELOPER=ON ..
-RUN ninja resources -j 3
 RUN ninja storm-cli -j 4
 
 WORKDIR /opt/

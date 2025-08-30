@@ -10,6 +10,11 @@ class UmbTool:
     pass
 
 
+def configure_umbtools(prism_root_path, storm_bin_path):
+    PrismCLI.prism_dir_path = prism_root_path
+    StormCLI._storm_path = storm_bin_path
+
+
 def check_tools(*args):
     for tool in args:
         if not tool.check_process():
@@ -36,6 +41,7 @@ class ReportedResults:
 
 class PrismCLI(UmbTool):
     prism_dir_path = "/opt/prism"
+    name = "Prism CLI"
 
     @staticmethod
     def get_prism_path():
@@ -55,11 +61,20 @@ class PrismCLI(UmbTool):
         return path
 
     @staticmethod
+    def _make_invocation(args):
+        return [PrismCLI.get_prism_path().as_posix()] + args
+
+    @staticmethod
     def _call_prism(log_file: pathlib.Path, args: list[str]):
+        args += ["-test"]
+        reported_args = args
         if log_file is not None:
             args = ["-mainlog", log_file.as_posix()] + args
+        print(" ".join(__class__._make_invocation(reported_args)))
+        invocation = __class__._make_invocation(args)
+
         subprocess_result = subprocess.run(
-            [PrismCLI.get_prism_path().as_posix()] + args,
+            invocation,
             capture_output=True,
             text=True,
         )
@@ -85,7 +100,15 @@ class PrismCLI(UmbTool):
             if log_subprocess_result.returncode != 0:
                 logger.warning("Issues parsing logfile yielded error code")
             data = log_subprocess_result.stdout.split("\n")[1].split(",")
-            reported_result.model_info = {"states": data[1], "transitions": data[2]}
+            try:
+                reported_result.model_info = {
+                    "states": int(data[1]),
+                    "transitions": int(data[2]),
+                }
+            except ValueError:
+                logger.warning(f"Issues parsing the model info data {data}")
+                reported_result.model_info = {}
+
         return reported_result
 
     @staticmethod
@@ -93,7 +116,8 @@ class PrismCLI(UmbTool):
         prism_file: pathlib.Path, output_file: pathlib.Path, log_file: pathlib.Path
     ):
         return __class__._call_prism(
-            log_file, [prism_file.as_posix(), "-exportmodel", output_file.as_posix()]
+            log_file,
+            [prism_file.as_posix(), "-exportmodel", output_file.as_posix(), "-ex"],
         )
 
     @staticmethod
@@ -122,6 +146,7 @@ class PrismCLI(UmbTool):
 
 class StormCLI(UmbTool):
     _storm_path = "/opt/storm/build/bin/storm"
+    name = "Storm CLI"
 
     @staticmethod
     def get_storm_path():
@@ -132,8 +157,10 @@ class StormCLI(UmbTool):
 
     @staticmethod
     def _call_storm(log_file, args):
+        invocation = [StormCLI.get_storm_path().as_posix()] + args
+        print(" ".join(invocation))
         result = subprocess.run(
-            [StormCLI.get_storm_path().as_posix_path()] + args,
+            invocation,
             capture_output=True,
             text=True,
         )
@@ -141,6 +168,7 @@ class StormCLI(UmbTool):
         reported_result.error_code = result.returncode
         reported_result.timeout = False
         reported_result.memout = False
+        reported_result.logfile = log_file
         if log_file is not None:
             parse_logfile(result.stdout, reported_result)
             with open(log_file, "w+") as log:
@@ -160,13 +188,14 @@ class StormCLI(UmbTool):
                 "--exportbuild",
                 output_file.as_posix(),
                 "--buildfull",
+                "-pc",
             ],
         )
 
     @staticmethod
     def check_umb(umb_file: pathlib.Path, log_file=pathlib.Path, properties=[]):
         args = ["--explicit-umb", umb_file.as_posix()]
-        if len(properties) > 0:
+        if properties is not None and len(properties) > 0:
             args += ["--prop", ";".join(properties)]
         return __class__._call_storm(log_file, args)
 
@@ -224,9 +253,9 @@ def parse_logfile(log, inv):
     )
     memout_messages.append("Return code:\t-9")
     inv.memout = contains_any_of(log, memout_messages)
-    known_error_messages = (
-        []
-    )  # add messages that indicate a "known" error, i.e., something that indicates that no warning should be printed
+    known_error_messages = [
+        "Program still contains these undefined constants"
+    ]  # add messages that indicate a "known" error, i.e., something that indicates that no warning should be printed
     inv.anticipated_error = contains_any_of(log, known_error_messages)
     if inv.not_supported or inv.anticipated_error:
         return
@@ -236,19 +265,18 @@ def parse_logfile(log, inv):
 
     pos = 0
 
+    inv.model_info = dict()
+
     pos = try_parse(
         log,
         pos,
         "Time for model construction: ",
         "s.",
-        inv,
+        inv.model_info,
         "model-building-time",
         float,
     )
-    # if pos == 0:
-    #    assert inv["timeout"] or inv["memout"], "WARN: unable to get model construction time for {}".format(inv["id"])
-    #    return
-    inv.model_info = dict()
+
     pos = try_parse(log, pos, "States: \t", "\n", inv.model_info, "states", int)
     pos = try_parse(
         log, pos, "Transitions: \t", "\n", inv.model_info, "transitions", int
@@ -260,6 +288,7 @@ def parse_logfile(log, inv):
 
 
 class UmbPython(UmbTool):
+    name = "umbi lib"
 
     @staticmethod
     def check_process():
