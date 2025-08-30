@@ -5,13 +5,17 @@ from pathlib import Path
 
 
 class UmbBenchmark:
-    def __init__(self, location, properties=None, is_prism_file=True):
+    def __init__(self, location: Path, properties=None, is_prism_file=True):
         self.location = location
         self.properties = properties
         self.is_prism_file = is_prism_file
 
     def __str__(self):
         return str(self.__dict__)
+
+    @property
+    def id(self) -> Path:
+        return Path("/".join(self.location.parts[-3:]))
 
 
 _prism_files_path = Path(__file__).parent / "../resources/prism-files/"
@@ -43,6 +47,14 @@ class Tester:
         self._loader = loader
         self._transformer = transformer
         self._checker = checker
+
+    @property
+    def id(self):
+        result = f"l={self._loader.name}"
+        if self._transformer is not None:
+            result += f"_t={self._transformer.name}"
+        result += f"_c={self._checker.name}"
+        return result
 
     def __str__(self):
         result = f"load with {self._loader.name}"

@@ -16,43 +16,6 @@ ARG BASE_IMAGE=movesrwth/storm-dependencies:latest
 ARG TARGETPLATFORM
 
 ######################################################################
-# Ensure we have wheels for JupyterHub and all dependencies,
-# some are platform specific
-#FROM $BASE_IMAGE AS wheel-builder
-
-#ENV DEBIAN_FRONTEND=noninteractive
-
-#
-#
-#RUN apt-get update -qq \
-# && apt-get install -yqq --no-install-recommends \
-#    build-essential \
-#    ca-certificates \
-#    curl \
-#    locales \
-#    python3-dev \
-#    python3-pip \
-#    python3-pycurl \
-#    python3-venv  \
-#    python3.13-venv
-#
-#WORKDIR /src/jupyterhub
-#COPY requirements.txt /src/jupyterhub/
-#
-#
-#ENV VIRTUAL_ENV=/opt/venv
-#RUN python3 -m venv $VIRTUAL_ENV
-#ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-#
-#RUN python3 -m pip install --no-cache-dir --upgrade setuptools pip build wheel
-#
-#
-#ARG PIP_CACHE_DIR=/tmp/pip-cache
-#RUN --mount=type=cache,target=${PIP_CACHE_DIR} \
-#    python3 -m pip wheel --wheel-dir wheelhouse -r requirements.txt
-
-
-######################################################################
 # The final JupyterHub image, platform specific
 FROM $BASE_IMAGE AS umbihub
 LABEL org.opencontainers.image.authors="dev@stormchecker.org"
@@ -91,8 +54,7 @@ ENV VIRTUAL_ENV=/opt/venv
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-RUN python3 -m pip install  --no-cache-dir  jupyter matplotlib scipy
-
+RUN python3 -m pip install  --no-cache-dir  jupyter matplotlib scipy pytest black
 
 #
 # CMake build type
@@ -132,7 +94,7 @@ RUN git clone -b umb https://github.com/davexparker/prism.git
 WORKDIR /opt/prism/prism
 RUN make
 
-RUN python3 -m pip install  --no-cache-dir  umbi
+RUN python3 -m pip install --no-cache-dir  umbi
 
 #############
 RUN mkdir /opt/umb

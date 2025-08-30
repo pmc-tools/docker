@@ -41,7 +41,7 @@ class ReportedResults:
 
 class PrismCLI(UmbTool):
     prism_dir_path = "/opt/prism"
-    name = "Prism CLI"
+    name = "PrismCLI"
 
     @staticmethod
     def get_prism_path():
@@ -146,7 +146,7 @@ class PrismCLI(UmbTool):
 
 class StormCLI(UmbTool):
     _storm_path = "/opt/storm/build/bin/storm"
-    name = "Storm CLI"
+    name = "StormCLI"
 
     @staticmethod
     def get_storm_path():
@@ -288,7 +288,7 @@ def parse_logfile(log, inv):
 
 
 class UmbPython(UmbTool):
-    name = "umbi lib"
+    name = "umbilib"
 
     @staticmethod
     def check_process():
