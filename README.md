@@ -10,7 +10,7 @@ Is created from the docker file, released to github daily via CI.
 On the container, you find 
 - a version of storm (with UMB support),
 - a version of prism (with UMB support),
-- the umbi python library
+- the umbi python library.
 - the contents of this repo, in particular, the umbtest library.
 - A jupyter notebook that is running. 
 
@@ -48,9 +48,25 @@ You can go to getting_started.ipynb to get started with what this docker contain
 
 Umbtest
 -------
-You can interact with Umbtest in different ways. 
-The easiest
 
+Umbtest is a set of somewhat ill-documented scripts that check UMB support. 
+
+You can interact with Umbtest in different ways. 
+
+### Local installation
+TO BE DONE
+
+### Via the docker
+This is possible in two ways. 
+
+#### Via the notebook
+As explained in the notebook, to which you can connect as explained above. 
+
+#### From the command line
+In particular, you can run: 
+```
+docker exec pmcdocker python -m pytest 
+```
 
 Continuous Integration
 -----------------------

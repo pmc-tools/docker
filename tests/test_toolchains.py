@@ -19,7 +19,6 @@ for l in [umbtest.tools.PrismCLI, umbtest.tools.StormCLI]:
 def testername(val):
     return val.id
 
-
 def benchmarkname(val: UmbBenchmark):
     return str(val.id)
 
@@ -31,9 +30,9 @@ def test_load_and_read(tester, benchmark):
     results = tester.check_benchmark(benchmark)
     if results["loader"].anticipated_error:
         pytest.skip("Loader failed with an anticipated error")
+    assert results["loader"].error_code == 0
     if results["checker"].anticipated_error:
         pytest.skip("Checker failed with an anticipated error")
-    assert results["loader"].error_code == 0
     assert results["checker"].error_code == 0
     assert (
         results["loader"].model_info["states"]

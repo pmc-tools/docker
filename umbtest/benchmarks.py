@@ -76,21 +76,28 @@ class Tester:
         if self._loader is None or self._checker is None:
             raise RuntimeError("You must first set the tool chain, using set_chain()")
         tmpfile_in = self._tmpumbfile()
+        tmpfile_in_path = Path(tmpfile_in.name)
         log_file_to_umb = self._tmplogfile()
         result["loader"] = self._loader.prism_file_to_umb(
-            prism_file, Path(tmpfile_in.name), log_file=Path(log_file_to_umb.name)
+            prism_file, tmpfile_in_path, log_file=Path(log_file_to_umb.name)
         )
+        result["checker"] = None
+        result["transformer"] = None
         if result["loader"].error_code != 0:
             with open(result["loader"].logfile, "r") as f:
                 print(f.read())
-            result["checker"] = None
-            result["transformer"] = None
-            return result
-
+            if not result["loader"].anticipated_error:
+                raise RuntimeError("Something unexpected went wrong.")
+            else:
+                return result
+        if not tmpfile_in_path.exists() or tmpfile_in_path.stat().st_size == 0:
+            with open(result["loader"].logfile, "r") as f:
+                print(f.read())
+            raise RuntimeError("UMB file not correctly created. ")
         if self._transformer:
             tmpfile_out = self._tmpumbfile()
             result["transformer"] = self._transformer.umb_to_umb(
-                Path(tmpfile_in.name),
+                tmpfile_in_path,
                 Path(tmpfile_out.name),
                 log_file=Path(self._tmplogfile().name),
             )
@@ -102,8 +109,7 @@ class Tester:
             properties=properties,
         )
         if result["checker"].error_code != 0:
-            print("------")
             with open(result["checker"].logfile, "r") as f:
                 print(f.read())
-            print("------")
+
         return result
