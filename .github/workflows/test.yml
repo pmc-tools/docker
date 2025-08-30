@@ -52,4 +52,4 @@ jobs:
         run: docker run -d -it --name ci pmctools/umbi:ci
 
       - name: Run tests
-        run: docker exec ci bash -c "cd /opt/umbtest; pytest tests"
+        run: docker exec ci bash -c "cd /opt/umb; pytest tests"

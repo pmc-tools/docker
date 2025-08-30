@@ -132,11 +132,11 @@ RUN git clone -b umb https://github.com/davexparker/prism.git
 WORKDIR /opt/prism/prism
 RUN make
 
+RUN python3 -m pip install  --no-cache-dir  umbi
+
 #############
 RUN mkdir /opt/umb
 WORKDIR /opt/umb
-
-RUN python3 -m pip install  --no-cache-dir  umbi
 
 # Copy the content of the current local repository into the Docker image
 COPY . .
