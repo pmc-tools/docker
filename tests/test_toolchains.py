@@ -16,15 +16,19 @@ for l in [umbtest.tools.PrismCLI, umbtest.tools.StormCLI]:
             toolchains_for_checking.append(toolchain)
 
 
-def testername(val):
-    return val.id
-
-def benchmarkname(val: UmbBenchmark):
+def _testername(val: Tester) -> str:
+    print(val)
     return str(val.id)
 
 
-@pytest.mark.parametrize("tester", toolchains_for_checking, ids=testername)
-@pytest.mark.parametrize("benchmark", umbtest.benchmarks.prism_files, ids=benchmarkname)
+def _benchmarkname(val: UmbBenchmark) -> str:
+    return str(val.id)
+
+
+@pytest.mark.parametrize("tester", toolchains_for_checking, ids=_testername)
+@pytest.mark.parametrize(
+    "benchmark", umbtest.benchmarks.prism_files, ids=_benchmarkname
+)
 def test_load_and_read(tester, benchmark):
     print(f"Testing {tester} on {benchmark}...")
     results = tester.check_benchmark(benchmark)
