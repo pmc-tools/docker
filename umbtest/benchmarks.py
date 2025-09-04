@@ -53,6 +53,8 @@ class Tester:
         result = f"l={self._loader.name}"
         if self._transformer is not None:
             result += f"_t={self._transformer.name}"
+        else:
+            result += "_t=None"
         result += f"_c={self._checker.name}"
         return result
 

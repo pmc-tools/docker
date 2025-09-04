@@ -307,6 +307,6 @@ class UmbPython(UmbTool):
         reported_results = ReportedResults()
         reported_results.model_info = {
             "states": ast.index.transition_system.num_states,
-            "transitions": ast.index.transition_system.num_transitions,
+            "transitions": ast.index.transition_system.num_branches,
         }
         return reported_results

@@ -17,7 +17,6 @@ for l in [umbtest.tools.PrismCLI, umbtest.tools.StormCLI]:
 
 
 def _testername(val: Tester) -> str:
-    print(val)
     return str(val.id)
 
 
