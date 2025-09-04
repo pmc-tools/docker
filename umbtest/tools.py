@@ -305,5 +305,8 @@ class UmbPython(UmbTool):
         ast = umbi.read_umb(input_file)
         umbi.write_umb(ast, output_file)
         reported_results = ReportedResults()
-        reported_results.model_info = ast.info.transition_system
+        reported_results.model_info = {
+            "states": ast.index.transition_system.num_states,
+            "transitions": ast.index.transition_system.num_transitions,
+        }
         return reported_results

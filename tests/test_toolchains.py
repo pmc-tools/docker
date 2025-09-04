@@ -10,7 +10,7 @@ from umbtest.benchmarks import UmbBenchmark, Tester
 toolchains_for_checking = []
 for l in [umbtest.tools.PrismCLI, umbtest.tools.StormCLI]:
     for c in [umbtest.tools.PrismCLI, umbtest.tools.StormCLI]:
-        for t in [None]:
+        for t in [None, umbtest.tools.UmbPython]:
             toolchain = Tester()
             toolchain.set_chain(loader=l, transformer=t, checker=c)
             toolchains_for_checking.append(toolchain)
