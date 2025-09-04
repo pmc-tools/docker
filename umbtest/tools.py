@@ -31,6 +31,7 @@ class ReportedResults:
         self.anticipated_error = (
             False  # Can be used to declare an error message that "makes sense"
         )
+        self.errors = tuple()
         self.error_code = None
         self.model_info = None
         self.logfile = None
@@ -263,8 +264,24 @@ def parse_logfile(log, inv):
         if not inv.timeout and not inv.memout:
             print("WARN: Unexpected return code(s): {}".format(inv["return-codes"]))
 
+    errors = {}
     pos = 0
-
+    i = 0
+    while i <= 30:
+        pos = try_parse(
+            log,
+            pos,
+            "ERROR",
+            "\n",
+            errors,
+            i,
+            str,
+        )
+        if i not in errors:
+            break
+        i = i + 1
+    inv.errors = tuple(errors.values())
+    pos = 0
     inv.model_info = dict()
 
     pos = try_parse(

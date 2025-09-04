@@ -113,5 +113,9 @@ class Tester:
         if result["checker"].error_code != 0:
             with open(result["checker"].logfile, "r") as f:
                 print(f.read())
+            if result["checker"].errors is None:
+                raise RuntimeError("Something unexpected went wrong.")
+            errmsg = ";".join(result["checker"].errors)
+            raise RuntimeError(f"Errors reported: {errmsg}.")
 
         return result
