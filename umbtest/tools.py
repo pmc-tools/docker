@@ -319,8 +319,8 @@ class UmbPython(UmbTool):
     ):
         import umbi
 
-        ast = umbi.read_umb(input_file)
-        umbi.write_umb(ast, output_file)
+        ast = umbi.io.read_umb(input_file)
+        umbi.io.write_umb(ast, output_file)
         reported_results = ReportedResults()
         reported_results.model_info = {
             "states": ast.index.transition_system.num_states,
