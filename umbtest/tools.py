@@ -310,7 +310,6 @@ class UmbPython(UmbTool):
     @staticmethod
     def check_process():
         import umbi
-
         return True
 
     @staticmethod
@@ -318,12 +317,13 @@ class UmbPython(UmbTool):
         input_file: pathlib.Path, output_file: pathlib.Path, log_file: pathlib.Path
     ):
         import umbi
+        import umbi.ats
 
-        ast = umbi.io.read_umb(input_file)
-        umbi.io.write_umb(ast, output_file)
+        ats = umbi.ats.read_ats(input_file)
+        umbi.ats.write_ats(ats, output_file)
         reported_results = ReportedResults()
         reported_results.model_info = {
-            "states": ast.index.transition_system.num_states,
-            "transitions": ast.index.transition_system.num_branches,
+            "states": ats.num_states,
+            "transitions": ats.num_branches,
         }
         return reported_results
