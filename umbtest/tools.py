@@ -317,10 +317,10 @@ class UmbPython(UmbTool):
         input_file: pathlib.Path, output_file: pathlib.Path, log_file: pathlib.Path
     ):
         import umbi
-        import umbi.ats
+        import umbi.io
 
-        ats = umbi.ats.read_ats(input_file)
-        umbi.ats.write_ats(ats, output_file)
+        ats = umbi.io.read_ats(input_file)
+        umbi.io.write_ats(ats, output_file)
         reported_results = ReportedResults()
         reported_results.model_info = {
             "states": ats.num_states,
