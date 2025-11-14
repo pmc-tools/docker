@@ -1,8 +1,8 @@
-PMC Tools Docker
+UMB Observatory
 =================
 
-This project manages a joint docker file with selected versions of different PMC tools.
-The project furthermore manages some joint python files that help to ensure that common file formats are mutually compatible. 
+This project observes compatibility with the UMB standard. 
+To this end, the project manages a Docker file where multiple tools are installed, along with some joint python files that help to ensure that common file formats are mutually compatible. 
 
 The container
 -------------
