@@ -20,20 +20,22 @@ class UmbBenchmark:
 
 _prism_files_path = Path(__file__).parent / "../resources/prism-files/"
 prism_files = [UmbBenchmark(p) for p in _prism_files_path.glob("*.nm")]
+few_files = prism_files[5:]
 
 standard = [
     UmbBenchmark(
-        Path(PrismCLI.prism_dir_path) / "prism-examples/simple/dice/dice.pm", None
+        Path(PrismCLI.default_path) / "prism-examples/simple/dice/dice.pm", None
     )
 ]
 
 
 class Tester:
-    def __init__(self):
+    def __init__(self, id=None):
         self._tmpdir = tempfile.TemporaryDirectory()
         self._loader = None
         self._checker = None
         self._transformer = None
+        self._id = id
 
     def _tmpumbfile(self):
         return tempfile.NamedTemporaryFile(dir=self._tmpdir.name, suffix=".umb")
@@ -42,7 +44,7 @@ class Tester:
         return tempfile.NamedTemporaryFile(dir=self._tmpdir.name, suffix=".log")
 
     def set_chain(
-        self, loader: UmbTool, transformer: None | UmbTool, checker: UmbTool
+        self, loader: UmbTool, checker: UmbTool, transformer: None | UmbTool = None
     ) -> None:
         self._loader = loader
         self._transformer = transformer
@@ -50,13 +52,16 @@ class Tester:
 
     @property
     def id(self):
-        result = f"l={self._loader.name}"
-        if self._transformer is not None:
-            result += f"_t={self._transformer.name}"
+        if self._id is None:
+            result = f"l={self._loader.name}"
+            if self._transformer is not None:
+                result += f"_t={self._transformer.name}"
+            else:
+                result += "_t=None"
+            result += f"_c={self._checker.name}"
+            return result
         else:
-            result += "_t=None"
-        result += f"_c={self._checker.name}"
-        return result
+            return self._id
 
     def __str__(self):
         result = f"load with {self._loader.name}"

@@ -1,6 +1,6 @@
 import subprocess
 import pathlib
-
+import tomllib
 import logging
 
 logger = logging.getLogger(__name__)
@@ -10,9 +10,14 @@ class UmbTool:
     pass
 
 
-def configure_umbtools(prism_root_path, storm_bin_path):
-    PrismCLI.prism_dir_path = prism_root_path
-    StormCLI._storm_path = storm_bin_path
+def configure_umbtools():
+    path = str(pathlib.Path(__file__).parent.parent / "tools.toml")
+    with open(path, "rb") as config_file:
+        paths = tomllib.load(config_file)
+        PrismCLI.default_path = paths["tools"]["prism"]
+        logger.warning(f"Prism is now configured with default location {PrismCLI.default_path}")
+        StormCLI.default_path = paths["tools"]["storm"]
+        logger.warning(f"Storm is now configured with default location {StormCLI.default_path}")
 
 
 def check_tools(*args):
@@ -41,38 +46,45 @@ class ReportedResults:
 
 
 class PrismCLI(UmbTool):
-    prism_dir_path = "/opt/prism"
+    default_path = "/opt/prism"
     name = "PrismCLI"
 
-    @staticmethod
-    def get_prism_path():
-        path = pathlib.Path(__class__.prism_dir_path) / "prism/bin/prism"
+    def __init__(self, location=None):
+        """
+        Create an instance of a prism cli tool.
+
+        :param location: The location of the prism installation. If none, PrismCLI.default_path is used.
+        """
+        if location is None:
+            self.prism_dir_path = __class__.default_path
+        else:
+            self.prism_dir_path = location
+
+    def get_prism_path(self):
+        path = pathlib.Path(self.prism_dir_path) / "prism/bin/prism"
         if not path.exists():
             raise RuntimeError(f"Prism executable not found at {path}")
         return path
 
-    @staticmethod
-    def get_prism_log_extract_script():
+    def get_prism_log_extract_script(self):
         path = (
-            pathlib.Path(__class__.prism_dir_path)
+            pathlib.Path(self.prism_dir_path)
             / "prism/etc/scripts/prism-log-extract"
         )
         if not path.exists():
             raise RuntimeError(f"Prism log script not found at {path}")
         return path
 
-    @staticmethod
-    def _make_invocation(args):
-        return [PrismCLI.get_prism_path().as_posix()] + args
+    def _make_invocation(self, args):
+        return [self.get_prism_path().as_posix()] + args
 
-    @staticmethod
-    def _call_prism(log_file: pathlib.Path, args: list[str]):
+    def _call_prism(self, log_file: pathlib.Path, args: list[str]):
         args += ["-test"]
         reported_args = args
         if log_file is not None:
             args = ["-mainlog", log_file.as_posix()] + args
-        print(" ".join(__class__._make_invocation(reported_args)))
-        invocation = __class__._make_invocation(args)
+        print(" ".join(self._make_invocation(reported_args)))
+        invocation = self._make_invocation(args)
 
         subprocess_result = subprocess.run(
             invocation,
@@ -87,7 +99,7 @@ class PrismCLI(UmbTool):
         if log_file is not None:
             log_subprocess_result = subprocess.run(
                 [
-                    PrismCLI.get_prism_log_extract_script().as_posix(),
+                    self.get_prism_log_extract_script().as_posix(),
                     "--fields=import_model_file,states,transitions",
                     reported_result.logfile,
                 ],
@@ -112,24 +124,21 @@ class PrismCLI(UmbTool):
 
         return reported_result
 
-    @staticmethod
     def prism_file_to_umb(
-        prism_file: pathlib.Path, output_file: pathlib.Path, log_file: pathlib.Path
+        self, prism_file: pathlib.Path, output_file: pathlib.Path, log_file: pathlib.Path
     ):
-        return __class__._call_prism(
+        return self._call_prism(
             log_file,
             [prism_file.as_posix(), "-exportmodel", output_file.as_posix(), "-ex"],
         )
 
-    @staticmethod
-    def check_umb(umb_file: pathlib.Path, log_file: pathlib.Path, properties=[]):
-        return __class__._call_prism(log_file, ["-importmodel", umb_file.as_posix()])
+    def check_umb(self, umb_file: pathlib.Path, log_file: pathlib.Path, properties=[]):
+        return self._call_prism(log_file, ["-importmodel", umb_file.as_posix()])
 
-    @staticmethod
     def umb_to_umb(
-        input_file: pathlib.Path, output_file: pathlib.Path, log_file: pathlib.Path
+        self, input_file: pathlib.Path, output_file: pathlib.Path, log_file: pathlib.Path
     ):
-        return __class__._call_prism(
+        return self._call_prism(
             log_file,
             [
                 "-importmodel",
@@ -139,27 +148,30 @@ class PrismCLI(UmbTool):
             ],
         )
 
-    @staticmethod
-    def check_process():
-        result = __class__._call_prism(None, ["-version"])
+    def check_process(self):
+        result = self._call_prism(None, ["-version"])
         return result.error_code == 0
 
 
 class StormCLI(UmbTool):
-    _storm_path = "/opt/storm/build/bin/storm"
     name = "StormCLI"
+    default_path = "/opt/storm"
 
-    @staticmethod
-    def get_storm_path():
-        path = pathlib.Path(__class__._storm_path)
+    def __init__(self, location=None):
+        if location is None:
+            self._storm_path = __class__.default_path
+        else:
+            self._storm_path = location
+
+    def get_storm_path(self):
+        path = pathlib.Path(self._storm_path)
         if not path.exists():
             raise RuntimeError(f"Storm executable not found at {path}")
         return path
 
-    @staticmethod
-    def _call_storm(log_file, args):
-        invocation = [StormCLI.get_storm_path().as_posix()] + args
-        print(" ".join(invocation))
+    def _call_storm(self, log_file, args):
+        invocation = [self.get_storm_path().as_posix()] + args
+        logger.info("Storm invocation: " + " ".join(invocation))
         result = subprocess.run(
             invocation,
             capture_output=True,
@@ -176,12 +188,11 @@ class StormCLI(UmbTool):
                 log.write(result.stdout)
         return reported_result
 
-    @staticmethod
     def prism_file_to_umb(
-        prism_file: pathlib.Path, output_file: pathlib.Path, log_file: pathlib.Path
+        self, prism_file: pathlib.Path, output_file: pathlib.Path, log_file: pathlib.Path
     ):
         # Note that output_file must end with .umb for this to work.
-        return __class__._call_storm(
+        return self._call_storm(
             log_file,
             [
                 "--prism",
@@ -193,19 +204,17 @@ class StormCLI(UmbTool):
             ],
         )
 
-    @staticmethod
-    def check_umb(umb_file: pathlib.Path, log_file=pathlib.Path, properties=[]):
+    def check_umb(self, umb_file: pathlib.Path, log_file=pathlib.Path, properties=[]):
         args = ["--explicit-umb", umb_file.as_posix()]
         if properties is not None and len(properties) > 0:
             args += ["--prop", ";".join(properties)]
-        return __class__._call_storm(log_file, args)
+        return self._call_storm(log_file, args)
 
-    @staticmethod
-    def umb_to_umb(
+    def umb_to_umb(self,
         input_file: pathlib.Path, output_file: pathlib.Path, log_file: pathlib.Path
     ):
         # Note that output_file must end with .umb for this to work.
-        return __class__._call_storm(
+        return self._call_storm(
             log_file,
             [
                 "--explicit-umb",
@@ -215,9 +224,8 @@ class StormCLI(UmbTool):
             ],
         )
 
-    @staticmethod
-    def check_process():
-        result = __class__._call_storm(None, ["--version"])
+    def check_process(self):
+        result = self._call_storm(None, ["--version"])
         return result.error_code == 0
 
 
@@ -307,20 +315,21 @@ def parse_logfile(log, inv):
 class UmbPython(UmbTool):
     name = "umbilib"
 
-    @staticmethod
-    def check_process():
+    def __init__(self):
+        pass
+
+    def check_process(self):
         import umbi
 
         return True
 
-    @staticmethod
     def umb_to_umb(
-        input_file: pathlib.Path, output_file: pathlib.Path, log_file: pathlib.Path
+        self, input_file: pathlib.Path, output_file: pathlib.Path, log_file: pathlib.Path
     ):
         import umbi
 
-        ast = umbi.read_umb(input_file)
-        umbi.write_umb(ast, output_file)
+        ast = umbi.io.read_umb(input_file)
+        umbi.io.write_umb(ast, output_file)
         reported_results = ReportedResults()
         reported_results.model_info = {
             "states": ast.index.transition_system.num_states,

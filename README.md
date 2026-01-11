@@ -1,8 +1,8 @@
-PMC Tools Docker
+UMB Observatory
 =================
 
-This project manages a joint docker file with selected versions of different PMC tools.
-The project furthermore manages some joint python files that help to ensure that common file formats are mutually compatible. 
+This project manages a joint docker file with selected versions of different PMC tools and libraries,
+a jupyter server, and a collection of python files that help to ensure that are mutually compatible. 
 
 The container
 -------------
@@ -49,15 +49,16 @@ You can go to getting_started.ipynb to get started with what this docker contain
 Umbtest
 -------
 
-Umbtest is a set of somewhat ill-documented scripts that check UMB support. 
+Umbtest is a set python files that check that UMB support is aligned. 
+The best place to get started is probably in `tests/test_toolchains.py`.
+Roughly `umbtest/benchmarks.py` collects files we use for testing,
+while `umbtest/tools.py` provides a thin layer around the available tools. 
 
-You can interact with Umbtest in different ways. 
-
-### Local installation
-TO BE DONE
+You can use umbtest in different ways. 
+The preferred way is via the docker, which ensures that you have the right tools installed in known locations. 
 
 ### Via the docker
-This is possible in two ways. 
+This is possible in two ways: via a notebook and via the command line. 
 
 #### Via the notebook
 As explained in the notebook, to which you can connect as explained above. 
@@ -68,6 +69,17 @@ In particular, you can run:
 docker exec pmcdocker python -m pytest 
 ```
 
+### Locally
+UMBTest is currently not available as a standalone package.
+However, you can run the scrips directly on your local machine.
+
+1. Update the `tools.toml` file with your local location of the tools.
+2. `pip install umbi`
+3. - You can run `python -m pytest tests` to run all kind of tests
+   - Run `python main.py` for a simple script
+   - Or run the python notebook on your local jupyterserver (see above for details)
+
 Continuous Integration
 -----------------------
-This repo is hosted on github, where continuous integration runs Umbtests.
+This repo is hosted on github, where continuous integration runs Umbtests:
+https://github.com/pmc-tools/umb-observatory/actions/workflows/test.yml

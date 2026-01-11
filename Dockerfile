@@ -20,36 +20,14 @@ ARG TARGETPLATFORM
 FROM $BASE_IMAGE AS umbihub
 LABEL org.opencontainers.image.authors="dev@stormchecker.org"
 
-#
-#
-#ENV DEBIAN_FRONTEND=noninteractive \
-#    SHELL=/bin/bash \
-#    LC_ALL=en_US.UTF-8 \
-#    LANG=en_US.UTF-8 \
-#    LANGUAGE=en_US.UTF-8 \
-#    PYTHONDONTWRITEBYTECODE=1
-
 EXPOSE 8000
-#
-#WORKDIR /srv/jupyter
-#
+
 RUN apt-get update -qq \
  && apt-get install -yqq --no-install-recommends \
-#    ca-certificates \
-#    curl \
-#    gnupg \
-#    locales \
     python-is-python3 \
     python3-pip \
-#    python3-pycurl \
-    python3-venv
-#    nodejs \
-#    npm \
-# && locale-gen $LC_ALL \
-# && npm install -g configurable-http-proxy@^4.6.2 \
-# # clean cache and logs
-# && rm -rf /var/lib/apt/lists/* /var/log/* /var/tmp/* ~/.npm
-#
+    python3-venv \
+
 ENV VIRTUAL_ENV=/opt/venv
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
@@ -68,8 +46,6 @@ RUN apt-get update -qq \
  && apt-get install -yqq --no-install-recommends \
     libarchive-dev ninja-build libboost-iostreams-dev \
     default-jdk
-
-
 
 # Build Storm
 #############
@@ -94,6 +70,7 @@ RUN git clone -b umb https://github.com/davexparker/prism.git
 WORKDIR /opt/prism/prism
 RUN make
 
+#### Install UMB
 RUN python3 -m pip install --no-cache-dir  umbi
 
 #############
@@ -102,5 +79,6 @@ WORKDIR /opt/umb
 
 # Copy the content of the current local repository into the Docker image
 COPY . .
+COPY .docker/tools.toml tools.toml
 
 CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--port=8000", "--no-browser", "--allow-root"]

@@ -1,0 +1,5 @@
+["tools"]
+# Note that for storm, we ask for the path to the binary
+storm = "/opt/storm/build/bin/storm"
+# For prism, we ask the location of the directory.
+prism = "/opt/prism/"

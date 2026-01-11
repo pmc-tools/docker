@@ -9,12 +9,12 @@ c = get_config()  # noqa
 c.JupyterHub.authenticator_class = "dummy"
 
 # Optionally set a global password that all users must use
-#c.DummyAuthenticator.password = "your_password"
+# c.DummyAuthenticator.password = "your_password"
 
 c.JupyterHub.spawner_class = "simple"
 
 # only listen on localhost for testing
-c.JupyterHub.bind_url = 'http://127.0.0.1:8000'
+c.JupyterHub.bind_url = "http://127.0.0.1:8000"
 
 # don't cache static files
 c.JupyterHub.tornado_settings = {
