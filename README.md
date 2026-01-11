@@ -4,6 +4,7 @@ UMB Observatory
 This project manages a joint docker file with selected versions of different PMC tools and libraries,
 a jupyter server, and a collection of python files that help to ensure that are mutually compatible. 
 
+
 The container
 -------------
 Is created from the docker file, released to github daily via CI. 
@@ -43,8 +44,8 @@ You can connect to `localhost:8000` (or another port, if you changed it) in your
 The notebook will ask for a token. Paste the token you just copied. 
 You are now in a jupyter notebook. 
 
-You can go to getting_started.ipynb to get started with what this docker container has to offer.
-(TO BE DONE.)
+You can go to getting_started.ipynb to get started with some opportunities that UMB offers.
+
 
 Umbtest
 -------
@@ -83,3 +84,4 @@ Continuous Integration
 -----------------------
 This repo is hosted on github, where continuous integration runs Umbtests:
 https://github.com/pmc-tools/umb-observatory/actions/workflows/test.yml
+

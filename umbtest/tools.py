@@ -2,6 +2,8 @@ import subprocess
 import pathlib
 import tomllib
 import logging
+import umbi
+import umbi.io
 
 logger = logging.getLogger(__name__)
 
@@ -319,20 +321,16 @@ class UmbPython(UmbTool):
         pass
 
     def check_process(self):
-        import umbi
-
         return True
 
     def umb_to_umb(
         self, input_file: pathlib.Path, output_file: pathlib.Path, log_file: pathlib.Path
     ):
-        import umbi
-
-        ast = umbi.io.read_umb(input_file)
-        umbi.io.write_umb(ast, output_file)
+        ats = umbi.io.read_umb(input_file)
+        umbi.io.write_umb(ats, output_file)
         reported_results = ReportedResults()
         reported_results.model_info = {
-            "states": ast.index.transition_system.num_states,
-            "transitions": ast.index.transition_system.num_branches,
+            "states": ats.num_states,
+            "transitions": ats.num_branches,
         }
         return reported_results
