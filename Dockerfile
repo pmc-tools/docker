@@ -26,7 +26,7 @@ RUN apt-get update -qq \
  && apt-get install -yqq --no-install-recommends \
     python-is-python3 \
     python3-pip \
-    python3-venv \
+    python3-venv
 
 ENV VIRTUAL_ENV=/opt/venv
 RUN python3 -m venv $VIRTUAL_ENV
