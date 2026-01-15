@@ -2,6 +2,7 @@ import tempfile
 from typing import List
 from umbtest.tools import UmbTool, ReportedResults, PrismCLI
 from pathlib import Path
+from collections import deque
 
 
 class UmbBenchmark:
@@ -94,20 +95,26 @@ class Tester:
             with open(result["loader"].logfile, "r") as f:
                 print(f.read())
             if not result["loader"].anticipated_error:
-                raise RuntimeError("Something unexpected went wrong.")
+                raise RuntimeError(f"Unexpected exception during loading by {self._loader.name}")
             else:
                 return result
         if not tmpfile_in_path.exists() or tmpfile_in_path.stat().st_size == 0:
+            d = None
+            with open(result["loader"].logfile, "r") as f:
+                d = deque(f.readlines(), maxlen=3)
             with open(result["loader"].logfile, "r") as f:
                 print(f.read())
-            raise RuntimeError("UMB file not correctly created. ")
+            raise RuntimeError(f"{self._loader.name} did not yield a UMB file (but status=0). Last log lines are {" ".join([d[i].rstrip('\n') for i in range(len(d)) if d[i]])} ")
         if self._transformer:
             tmpfile_out = self._tmpumbfile()
-            result["transformer"] = self._transformer.umb_to_umb(
-                tmpfile_in_path,
-                Path(tmpfile_out.name),
-                log_file=Path(self._tmplogfile().name),
-            )
+            try:
+                result["transformer"] = self._transformer.umb_to_umb(
+                    tmpfile_in_path,
+                    Path(tmpfile_out.name),
+                    log_file=Path(self._tmplogfile().name),
+                )
+            except Exception as e:
+                raise RuntimeError(f"{self._transformer.name} raised {type(e)}:{e}!")
         else:
             tmpfile_out = tmpfile_in
         result["checker"] = self._checker.check_umb(

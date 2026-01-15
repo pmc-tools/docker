@@ -51,7 +51,7 @@ class PrismCLI(UmbTool):
     default_path = "/opt/prism"
     name = "PrismCLI"
 
-    def __init__(self, location=None):
+    def __init__(self, location=None, extra_args = []):
         """
         Create an instance of a prism cli tool.
 
@@ -61,6 +61,7 @@ class PrismCLI(UmbTool):
             self.prism_dir_path = __class__.default_path
         else:
             self.prism_dir_path = location
+        self._extra_args = extra_args
 
     def get_prism_path(self):
         path = pathlib.Path(self.prism_dir_path) / "prism/bin/prism"
@@ -81,7 +82,7 @@ class PrismCLI(UmbTool):
         return [self.get_prism_path().as_posix()] + args
 
     def _call_prism(self, log_file: pathlib.Path, args: list[str]):
-        args += ["-test"]
+        args += ["-test"] + self._extra_args
         reported_args = args
         if log_file is not None:
             args = ["-mainlog", log_file.as_posix()] + args

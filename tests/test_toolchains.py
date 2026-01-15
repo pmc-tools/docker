@@ -10,21 +10,9 @@ This can also be used to override the standard paths loaded by the configure too
 umbtest.tools.configure_umbtools()
 storm_cli = umbtest.tools.StormCLI()
 prism_cli = umbtest.tools.PrismCLI()
+prism_cli_exact = umbtest.tools.PrismCLI(extra_args = ["-exact"])
 umbi_py = umbtest.tools.UmbPython()
 check_tools(prism_cli, storm_cli)
-
-"""
-We define the crosschecks between tools.
-"""
-crosschecks = []
-for l in [prism_cli, storm_cli]:
-    for c in [prism_cli, storm_cli]:
-        if l==c:
-            continue
-        for t in [umbtest.tools.UmbPython]:
-            toolchain = Tester()
-            toolchain.set_chain(loader=l, transformer=t, checker=c)
-            crosschecks.append(toolchain)
 
 
 def _toolname(val: umbtest.tools.UmbTool) -> str:
@@ -77,7 +65,7 @@ def load_and_read(tester, benchmark):
         == results["checker"].model_info["transitions"]
     )
 
-tools = [storm_cli, prism_cli]
+tools = [storm_cli, prism_cli, prism_cli_exact]
 @pytest.mark.parametrize("tool", tools, ids=_toolname, scope="class")
 class TestTool:
     @pytest.mark.parametrize(
@@ -94,4 +82,15 @@ class TestTool:
     def test_write_umbi_read(self, tool, benchmark):
         tester = Tester()
         tester.set_chain(loader=tool, transformer=umbi_py, checker=tool)
+        load_and_read(tester, benchmark)
+
+
+toolpairs = [(storm_cli, prism_cli), (prism_cli, storm_cli), (prism_cli_exact, storm_cli)]
+class TestAlignment:
+    @pytest.mark.parametrize(
+        "benchmark", umbtest.benchmarks.prism_files, ids=_benchmarkname
+    )
+    def test_write_read(self, toolpair, benchmark):
+        tester = Tester()
+        tester.set_chain(loader=toolpair[0], checker=toolpair[1])
         load_and_read(tester, benchmark)
