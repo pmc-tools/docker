@@ -1,0 +1,8 @@
+Storm 1.11.1 (dev)
+
+Date: Tue Jan 27 00:05:30 2026
+Command line arguments: --explicit-umb /Users/junges/docker/tmp/tmp47ts_b29.umb --exact
+Current working directory: /Users/junges/docker
+
+ERROR (UmbImport.cpp:260): The given path '"/Users/junges/docker/tmp/tmp47ts_b29.umb"' does not exist.
+ERROR (storm-cli.cpp:49): An exception caused Storm to terminate. The message of the exception is: FileIoException: The given path '"/Users/junges/docker/tmp/tmp47ts_b29.umb"' does not exist.

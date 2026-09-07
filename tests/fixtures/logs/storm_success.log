@@ -1,0 +1,25 @@
+Storm 1.11.1 (dev)
+
+Date: Tue Jan 27 00:05:46 2026
+Command line arguments: --prism /Users/junges/docker/umbtest/../resources/prism-files/multiobj_simple_lra.nm --exportbuild /Users/junges/docker/tmp/tmp9b1b29_n.umb --buildfull -pc
+Current working directory: /Users/junges/docker
+
+Time for model input parsing: 0.001s.
+
+Time for model construction: 0.004s.
+
+-------------------------------------------------------------- 
+Model type: 	MDP (sparse)
+States: 	4
+Transitions: 	10
+Choices: 	7
+Reward Models:  third, second, first
+State Labels: 	2 labels
+   * deadlock -> 0 item(s)
+   * init -> 1 item(s)
+Choice Labels: 	none
+-------------------------------------------------------------- 
+
+Exporting model to '/Users/junges/docker/tmp/tmp9b1b29_n.umb'.
+Time for model export: 0.002s.
+
