@@ -26,12 +26,12 @@ jobs:
 
       - name: Run ruff
         run: |
-          pip install ruff
+          pip install ruff==0.16.6
           ruff check umbtest tests main.py
 
       - name: Run pyright
         run: |
-          pip install pyright
+          pip install pyright==1.1.408
           pyright
 
       - name: Check notebook source is well-formed
