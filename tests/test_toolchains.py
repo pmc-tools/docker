@@ -1,10 +1,12 @@
 import os
-from typing import Callable, cast
+from collections.abc import Callable
+from typing import cast
 
 import pytest
-import umbtest.benchmarks as benchmarks
+
 import umbtest.tools
-from umbtest.benchmarks import UmbBenchmark, Tester, ChainResults
+from umbtest import benchmarks
+from umbtest.benchmarks import ChainResults, Tester, UmbBenchmark
 from umbtest.tools import UmbTool
 
 """
@@ -36,7 +38,7 @@ def modest_cli() -> umbtest.tools.ModestCLI:
 def _available(tool: UmbTool) -> bool:
     try:
         return bool(tool.check_process())
-    except Exception:
+    except Exception:  # noqa: BLE001
         return False
 
 

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-import tempfile
-from typing import List, Protocol, TypedDict, cast
-from umbtest.tools import UmbTool, ReportedResults, PrismCLI
-from pathlib import Path
 import logging
+import tempfile
+from pathlib import Path
+from typing import Protocol, TypedDict, cast
+
+from umbtest.tools import PrismCLI, ReportedResults, UmbTool
 
 logger = logging.getLogger(__name__)
 
@@ -142,7 +143,7 @@ class Tester:
             raise NotImplementedError("We currently only support prism files")
 
     def check_prism_file(
-        self, prism_file: Path, properties: List[str] | None
+        self, prism_file: Path, properties: list[str] | None
     ) -> ChainResults:
         loader, checker = self._require_chain()
         tmpfile_in = self._tmpumbfile()
@@ -181,7 +182,7 @@ class Tester:
                 result["transformer"] = transformer_result
                 if transformer_result.exit_code != 0:
                     return result
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 raise RuntimeError(f"{self._transformer.name} raised {type(e)}:{e}!")
         else:
             tmpfile_out = tmpfile_in

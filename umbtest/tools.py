@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-import subprocess
-import pathlib
 import logging
+import pathlib
+import subprocess
+from collections.abc import Callable
+from typing import ClassVar, Literal, TypeVar
+
 import umbi
-from typing import Callable, ClassVar, Literal, TypeVar
 
 from umbtest.config import load_config
 
@@ -166,7 +168,7 @@ class UmbTool:
     def _invoke(self, args: list[str]) -> subprocess.CompletedProcess[str]:
         invocation = [self.get_binary_path().as_posix()] + args + self._extra_args
         logger.info(f"{self.name} invocation: " + " ".join(invocation))
-        return subprocess.run(invocation, capture_output=True, text=True)
+        return subprocess.run(invocation, capture_output=True, text=True, check=False)
 
     def check_process(self) -> bool:
         result = self._invoke(["--version"])
@@ -217,7 +219,7 @@ class ReportedResults:
         cls,
         result: subprocess.CompletedProcess[str],
         log_file: pathlib.Path | None = None,
-    ) -> "ReportedResults":
+    ) -> ReportedResults:
         reported = cls()
         reported.exit_code = result.returncode
         reported.timeout = False
@@ -273,6 +275,7 @@ class PrismCLI(UmbTool):
             invocation,
             capture_output=True,
             text=True,
+            check=False,
         )
         reported_result = ReportedResults.from_subprocess(subprocess_result, log_file)
         if log_file is not None:
@@ -286,6 +289,7 @@ class PrismCLI(UmbTool):
                 ],
                 capture_output=True,
                 text=True,
+                check=False,
             )
             if log_subprocess_result.stderr != "":
                 logger.warning(
@@ -300,7 +304,7 @@ class PrismCLI(UmbTool):
                     "states": int(data[1]),
                     "transitions": int(data[2]),
                 }
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.warning(f"Issues parsing the model info data {data}. Got exception: {e}")
                 reported_result.model_info = {}
 
@@ -381,6 +385,7 @@ class ModestCLI(UmbTool):
             invocation,
             capture_output=True,
             text=True,
+            check=False,
         )
         reported_result = ReportedResults.from_subprocess(result, log_file)
         if log_file is not None:
@@ -464,6 +469,7 @@ class StormCLI(UmbTool):
             invocation,
             capture_output=True,
             text=True,
+            check=False,
         )
         reported_result = ReportedResults.from_subprocess(result, log_file)
         if log_file is not None:

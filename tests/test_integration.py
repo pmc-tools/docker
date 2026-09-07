@@ -18,7 +18,7 @@ RESOURCE = Path(__file__).parent.parent / "resources" / "prism-files" / "tiny_re
 def _available(tool: UmbTool) -> bool:
     try:
         return bool(tool.check_process())
-    except Exception:
+    except Exception:  # noqa: BLE001
         return False
 
 

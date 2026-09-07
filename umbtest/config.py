@@ -1,7 +1,8 @@
 import os
-import tomllib
 from pathlib import Path
 from typing import TypedDict, cast
+
+import tomllib
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
