@@ -1,6 +1,19 @@
-./docker
-./git
-./github
-./ipynb_checkpoints
-./tmp
-*.egg_info
+# VCS / editors
+.git/
+.idea/
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Local config and transient files
+tools.toml
+tmp/
+docker.log

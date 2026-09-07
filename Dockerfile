@@ -23,8 +23,7 @@ RUN apt-get update -qq \
     python-is-python3 \
     python3-pip \
     python3-venv \
-    unzip  \
- && apt-get install -yqq --no-install-recommends \
+    unzip \
     libarchive-dev ninja-build libboost-iostreams-dev \
     default-jdk  \
     xz-utils
@@ -33,15 +32,15 @@ ENV VIRTUAL_ENV=/opt/venv
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-RUN python3 -m pip install  --no-cache-dir  jupyter matplotlib scipy pytest black
+RUN python3 -m pip install  --no-cache-dir  jupyter matplotlib scipy pytest
 
 #
 # CMake build type
 ARG storm_build_type=Release
 # Specify number of threads to use for parallel compilation
 ARG no_threads=1
-ARG storm_repo=https://github.com/tquatmann/storm.git
-ARG storm_branch=io/binaryformat
+ARG storm_repo=https://github.com/stormchecker/storm.git
+ARG storm_branch=master
 ARG prism_repo=https://github.com/davexparker/prism.git
 ARG prism_branch=umb
 

@@ -1,5 +1,20 @@
-.idea/
-.ipynb_checkpoints/
-*.egg-info/
+# Python
 __pycache__/
 *.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Local configuration (contains machine-specific tool paths)
+tools.toml
+
+# Transient files
+tmp/
+docker.log
+
+# Editors / OS
+.idea/
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
