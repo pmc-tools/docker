@@ -79,6 +79,12 @@ jobs:
       - name: Run tests
         run: docker exec ci bash -c "cd /opt/umb; UMB_TEST_MODELS=full python -m pytest --junit-xml=test-results.xml tests"
 
+      - name: Build the getting-started notebook (materialize + execute)
+        run: |
+          docker exec ci bash -c "cd /opt/umb; \
+            jupytext --to ipynb getting_started.md && \
+            jupyter nbconvert --to notebook --execute --inplace getting_started.ipynb"
+
       - name: Download test results
         if: always()
         run: docker cp ci:/opt/umb/test-results.xml test-results.xml
