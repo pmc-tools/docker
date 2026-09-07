@@ -1,23 +1,37 @@
+from __future__ import annotations
+
 import subprocess
 import pathlib
-import tomllib
 import logging
 import umbi
-import umbi.io
+from typing import Callable, ClassVar, Literal, TypeVar
+
+from umbtest.config import load_config
 
 logger = logging.getLogger(__name__)
+
+K = TypeVar("K")
+V = TypeVar("V")
 
 
 #  LOGFILE Parsing
 # Taken from and adapted from a project by Alex Bork and Tim Quatmann
-def contains_any_of(log, msg):
+def contains_any_of(log: str, msg: list[str]) -> bool:
     for m in msg:
         if m in log:
             return True
     return False
 
 
-def try_parse(log, start, before, after, out_dict, out_key, out_type):
+def try_parse(
+    log: str,
+    start: int,
+    before: str,
+    after: str,
+    out_dict: dict[K, V],
+    out_key: K,
+    out_type: Callable[[str], V],
+) -> int:
     pos1 = log.find(before, start)
     if pos1 >= 0:
         pos1 += len(before)
@@ -28,12 +42,12 @@ def try_parse(log, start, before, after, out_dict, out_key, out_type):
     return start
 
 
-def parse_logfile_storm(log, inv):
+def parse_logfile_storm(log: str, inv: ReportedResults) -> None:
     unsupported_messages = [
         "ERROR (storm-cli.cpp:49): An exception caused Storm to terminate. The message of the exception is: NotSupportedException: Can not build interval model for the provided value type."
     ]  # add messages that indicate that the invocation is not supported
     inv.not_supported = contains_any_of(log, unsupported_messages)
-    memout_messages = []  # add messages that indicate that the invocation is not supported
+    memout_messages: list[str] = []  # add messages that indicate that the invocation is not supported
     memout_messages.append(
         "An unexpected exception occurred and caused Storm to terminate. The message of this exception is: std::bad_alloc"
     )
@@ -48,10 +62,10 @@ def parse_logfile_storm(log, inv):
         return
     if inv.exit_code not in [0, 1]:
         if not inv.timeout and not inv.memout:
-            print(f"WARN: Unexpected return code(s): {inv.exit_code}")
+            logger.warning(f"Unexpected return code(s): {inv.exit_code}")
         return
 
-    errors = {}
+    errors: dict[int, str] = {}
     pos = 0
     i = 0
     while i <= 30:
@@ -69,7 +83,7 @@ def parse_logfile_storm(log, inv):
         i = i + 1
     inv.errors = tuple(errors.values())
     pos = 0
-    inv.model_info = dict()
+    inv.model_info = {}
 
     pos = try_parse(
         log,
@@ -91,108 +105,176 @@ def parse_logfile_storm(log, inv):
     )
 
 
-class UmbTool:
-    pass
+def parse_logfile_prism(log: str, inv: ReportedResults) -> None:
+    unsupported_messages = [
+        "smg",
+        "Error: Explicit engine: Intervals not supported for EXACT.",
+        "Error: Unsupported model type TSG in UMB file.",
+    ]  # add messages that indicate that the invocation is not supported
+    inv.not_supported = contains_any_of(log, unsupported_messages)
 
 
-def configure_umbtools():
-    path = str(pathlib.Path(__file__).parent.parent / "tools.toml")
-    with open(path, "rb") as config_file:
-        paths = tomllib.load(config_file)
-        PrismCLI.default_path = paths["tools"]["prism"]
-        logger.warning(
-            f"Prism is now configured with default location {PrismCLI.default_path}"
-        )
-        StormCLI.default_path = paths["tools"]["storm"]
-        logger.warning(
-            f"Storm is now configured with default location {StormCLI.default_path}"
-        )
-        ModestCLI.default_path = paths["tools"]["modest"]
-        logger.warning(
-            f"Modest is now configured with default location {ModestCLI.default_path}"
-        )
-
-
-def check_tools(*args):
+def check_tools(*args: UmbTool) -> None:
     for tool in args:
         if not tool.check_process():
             raise RuntimeError(f"Tool '{tool.name}' failed")
 
 
-class ReportedResults:
-    def __init__(self):
-        self.timeout = None
-        self.memout = None
-        self.not_supported = (
-            False  # Error messages that say something is not supported.
+def configure_umbtools() -> None:
+    tools = load_config()["tools"]
+    if "prism" in tools:
+        PrismCLI.default_path = tools["prism"]
+        logger.warning(
+            f"Prism is now configured with default location {PrismCLI.default_path}"
         )
-        self.anticipated_error = (
-            False  # Can be used to declare an error message that "makes sense"
+    if "storm" in tools:
+        StormCLI.default_path = tools["storm"]
+        logger.warning(
+            f"Storm is now configured with default location {StormCLI.default_path}"
         )
-        self.errors = tuple()
-        self.exit_code = None
-        self.model_info = None
-        self.logfile = None
+    if "modest" in tools:
+        ModestCLI.default_path = tools["modest"]
+        logger.warning(
+            f"Modest is now configured with default location {ModestCLI.default_path}"
+        )
 
-    def __str__(self):
-        return f"ReportedResults[{self.logfile},{self.exit_code},{self.model_info},{self.timeout},{self.memout}]"
 
-class PrismCLI(UmbTool):
-    default_path = "/opt/prism"
-    name = "PrismCLI"
+class UmbTool:
+    """Base class for tools that produce or consume UMB files."""
 
-    def __init__(self, location=None, extra_args=[], custom_identifier=None):
-        """
-        Create an instance of a prism cli tool.
+    name: ClassVar[str] = "UmbTool"
+    # Abstract placeholder; concrete subclasses must override with a real path.
+    default_path: ClassVar[str] = ""
 
-        :param location: The location of the prism installation. If none, PrismCLI.default_path is used.
-        """
-        if location is None:
-            self.prism_dir_path = __class__.default_path
-        else:
-            self.prism_dir_path = location
-        self._extra_args = extra_args
-        self._custom_identifier = custom_identifier
+    def __init__(
+        self,
+        extra_args: list[str] | None = None,
+        custom_identifier: str | None = None,
+    ) -> None:
+        self._extra_args = list(extra_args) if extra_args else []
+        self._custom_identifier: str | None = custom_identifier
 
     @property
-    def identifier(self):
-        return self._custom_identifier if self._custom_identifier is not None else self.name + "(" + ",".join(
-            self._extra_args
-        ) + ")"
+    def identifier(self) -> str:
+        if self._custom_identifier is not None:
+            return self._custom_identifier
+        return self.name + "(" + ",".join(self._extra_args) + ")"
 
-    def get_prism_path(self):
+    def get_binary_path(self) -> pathlib.Path:
+        raise NotImplementedError
+
+    def _invoke(self, args: list[str]) -> subprocess.CompletedProcess[str]:
+        invocation = [self.get_binary_path().as_posix()] + args + self._extra_args
+        logger.info(f"{self.name} invocation: " + " ".join(invocation))
+        return subprocess.run(invocation, capture_output=True, text=True)
+
+    def check_process(self) -> bool:
+        result = self._invoke(["--version"])
+        return result.returncode == 0
+
+    def prism_file_to_umb(
+        self,
+        prism_file: pathlib.Path,
+        output_file: pathlib.Path,
+        log_file: pathlib.Path,
+    ) -> ReportedResults:
+        raise NotImplementedError
+
+    def check_umb(
+        self,
+        umb_file: pathlib.Path,
+        log_file: pathlib.Path | None = None,
+        properties: list[str] | None = None,
+    ) -> ReportedResults:
+        raise NotImplementedError
+
+    def umb_to_umb(
+        self,
+        input_file: pathlib.Path,
+        output_file: pathlib.Path,
+        log_file: pathlib.Path | None,
+    ) -> ReportedResults:
+        raise NotImplementedError
+
+
+class ReportedResults:
+    def __init__(self) -> None:
+        self.timeout: bool = False
+        self.memout: bool = False
+        self.not_supported: bool = (
+            False  # Error messages that say something is not supported.
+        )
+        self.anticipated_error: bool = (
+            False  # Can be used to declare an error message that "makes sense"
+        )
+        self.errors: tuple[str, ...] = ()
+        self.exit_code: int | None = None
+        self.model_info: dict[str, int | float] | None = None
+        self.logfile: pathlib.Path | None = None
+
+    @classmethod
+    def from_subprocess(
+        cls,
+        result: subprocess.CompletedProcess[str],
+        log_file: pathlib.Path | None = None,
+    ) -> "ReportedResults":
+        reported = cls()
+        reported.exit_code = result.returncode
+        reported.timeout = False
+        reported.memout = False
+        reported.logfile = log_file
+        return reported
+
+    def __str__(self) -> str:
+        return f"ReportedResults[{self.logfile},{self.exit_code},{self.model_info},{self.timeout},{self.memout}]"
+
+
+class PrismCLI(UmbTool):
+    default_path: ClassVar[str] = "/opt/prism"
+    name: ClassVar[str] = "PrismCLI"
+
+    def __init__(
+        self,
+        location: str | pathlib.Path | None = None,
+        extra_args: list[str] | None = None,
+        custom_identifier: str | None = None,
+    ) -> None:
+        super().__init__(extra_args=extra_args, custom_identifier=custom_identifier)
+        self.prism_dir_path = (
+            location if location is not None else __class__.default_path
+        )
+
+    def get_prism_path(self) -> pathlib.Path:
         path = pathlib.Path(self.prism_dir_path) / "prism/bin/prism"
         if not path.exists():
             raise RuntimeError(f"Prism executable not found at {path}")
         return path
 
-    def get_prism_log_extract_script(self):
+    def get_prism_log_extract_script(self) -> pathlib.Path:
         path = pathlib.Path(self.prism_dir_path) / "prism/etc/scripts/prism-log-extract"
         if not path.exists():
             raise RuntimeError(f"Prism log script not found at {path}")
         return path
 
-    def _make_invocation(self, args):
-        return [self.get_prism_path().as_posix()] + args
+    def get_binary_path(self) -> pathlib.Path:
+        return self.get_prism_path()
 
-    def _call_prism(self, log_file: pathlib.Path, args: list[str]):
-        args += ["-test"] + self._extra_args
+    def _call_prism(
+        self, log_file: pathlib.Path | None, args: list[str]
+    ) -> ReportedResults:
+        args = args + ["-test"] + self._extra_args
         reported_args = args
         if log_file is not None:
             args = ["-mainlog", log_file.as_posix()] + args
-        print(" ".join(self._make_invocation(reported_args)))
-        invocation = self._make_invocation(args)
+        logger.info(" ".join([self.get_prism_path().as_posix()] + reported_args))
+        invocation = [self.get_prism_path().as_posix()] + args
 
         subprocess_result = subprocess.run(
             invocation,
             capture_output=True,
             text=True,
         )
-        reported_result = ReportedResults()
-        reported_result.timeout = None
-        reported_result.memout = None
-        reported_result.exit_code = subprocess_result.returncode
-        reported_result.logfile = log_file
+        reported_result = ReportedResults.from_subprocess(subprocess_result, log_file)
         if log_file is not None:
             with open(log_file, "r") as log:
                 parse_logfile_prism(log.read(), reported_result)
@@ -200,7 +282,7 @@ class PrismCLI(UmbTool):
                 [
                     self.get_prism_log_extract_script().as_posix(),
                     "--fields=import_model_file,states,transitions",
-                    reported_result.logfile,
+                    log_file.as_posix(),
                 ],
                 capture_output=True,
                 text=True,
@@ -211,6 +293,7 @@ class PrismCLI(UmbTool):
                 )
             if log_subprocess_result.returncode != 0:
                 logger.warning(f"Issues parsing logfile yielded error code {log_subprocess_result.returncode}.")
+            data = log_subprocess_result.stdout
             try:
                 data = log_subprocess_result.stdout.split("\n")[1].split(",")
                 reported_result.model_info = {
@@ -228,21 +311,26 @@ class PrismCLI(UmbTool):
         prism_file: pathlib.Path,
         output_file: pathlib.Path,
         log_file: pathlib.Path,
-    ):
+    ) -> ReportedResults:
         return self._call_prism(
             log_file,
             [prism_file.as_posix(), "-exportmodel", output_file.as_posix(), "-ex"],
         )
 
-    def check_umb(self, umb_file: pathlib.Path, log_file: pathlib.Path, properties=[]):
+    def check_umb(
+        self,
+        umb_file: pathlib.Path,
+        log_file: pathlib.Path | None = None,
+        properties: list[str] | None = None,
+    ) -> ReportedResults:
         return self._call_prism(log_file, ["-importmodel", umb_file.as_posix()])
 
     def umb_to_umb(
         self,
         input_file: pathlib.Path,
         output_file: pathlib.Path,
-        log_file: pathlib.Path,
-    ):
+        log_file: pathlib.Path | None,
+    ) -> ReportedResults:
         return self._call_prism(
             log_file,
             [
@@ -253,60 +341,48 @@ class PrismCLI(UmbTool):
             ],
         )
 
-    def check_process(self):
+    def check_process(self) -> bool:
         result = self._call_prism(None, ["-version"])
         return result.exit_code == 0
 
 
-def parse_logfile_prism(log, inv):
-    unsupported_messages = [
-        "smg",
-        "Error: Explicit engine: Intervals not supported for EXACT.",
-        "Error: Unsupported model type TSG in UMB file.",
-    ]  # add messages that indicate that the invocation is not supported
-    inv.not_supported = contains_any_of(log, unsupported_messages)
-
-
 class ModestCLI(UmbTool):
-    name = "ModestCLI"
-    default_path = "/opt/modest"
-    empty_properties_file = (pathlib.Path(__file__).parent.parent) / "resources" / "empty.properties.txt"
+    name: ClassVar[str] = "ModestCLI"
+    default_path: ClassVar[str] = "/opt/modest"
+    empty_properties_file: ClassVar[pathlib.Path] = (
+        pathlib.Path(__file__).parent.parent
+    ) / "resources" / "empty.properties.txt"
 
-    def __init__(self, location=None, extra_args=[], custom_identifier=None):
-        if location is None:
-            self._modest_path = __class__.default_path
-        else:
-            self._modest_path = location
-        self._extra_args = extra_args
-        self._custom_identifier = custom_identifier
+    def __init__(
+        self,
+        location: str | pathlib.Path | None = None,
+        extra_args: list[str] | None = None,
+        custom_identifier: str | None = None,
+    ) -> None:
+        super().__init__(extra_args=extra_args, custom_identifier=custom_identifier)
+        self._modest_path = location if location is not None else __class__.default_path
 
-
-
-    @property
-    def identifier(self):
-        return self._custom_identifier if self._custom_identifier is not None else self.name + "(" + ",".join(
-            self._extra_args
-        ) + ")"
-
-    def get_modest_path(self):
+    def get_binary_path(self) -> pathlib.Path:
         path = pathlib.Path(self._modest_path)
         if not path.exists():
             raise RuntimeError(f"Modest executable not found at {path}")
         return path
 
-    def _call_mcsta(self, log_file, args):
-        invocation = [self.get_modest_path().as_posix(), "mcsta", "-Y"] + args + self._extra_args
-        print(" ".join(invocation))
+    def _call_mcsta(
+        self, log_file: pathlib.Path | None, args: list[str]
+    ) -> ReportedResults:
+        invocation = (
+            [self.get_binary_path().as_posix(), "mcsta", "-Y"]
+            + args
+            + self._extra_args
+        )
+        logger.info("Modest invocation: " + " ".join(invocation))
         result = subprocess.run(
             invocation,
             capture_output=True,
             text=True,
         )
-        reported_result = ReportedResults()
-        reported_result.exit_code = result.returncode
-        reported_result.timeout = False
-        reported_result.memout = False
-        reported_result.logfile = log_file
+        reported_result = ReportedResults.from_subprocess(result, log_file)
         if log_file is not None:
             with open(log_file, "w+") as log:
                 log.write(result.stdout)
@@ -314,11 +390,20 @@ class ModestCLI(UmbTool):
                     reported_result.exit_code = 1
                 if "UMB: error: Only deadlock-free MA, MDP, CTMC, DTMC, and LTS models are supported." in result.stdout:
                     reported_result.not_supported = True
+                if "UMB: error: Unsupported" in result.stdout:
+                    reported_result.not_supported = True
                 if "UMB: error: Models where state 0 is not the initial state are not supported" in result.stdout:
+                    reported_result.anticipated_error = True
+                if "UMB: error: Found non-standard file" in result.stdout:
                     reported_result.anticipated_error = True
         return reported_result
 
-    def check_umb(self, umb_file: pathlib.Path, log_file: pathlib.Path, properties=[]):
+    def check_umb(
+        self,
+        umb_file: pathlib.Path,
+        log_file: pathlib.Path | None = None,
+        properties: list[str] | None = None,
+    ) -> ReportedResults:
         args = [umb_file.as_posix(), __class__.empty_properties_file.as_posix(), "-I", "UMB", "--exhaustive", "-D"]
         if properties is not None and len(properties) > 0:
             raise NotImplementedError("The use of properties is not implemented yet.")
@@ -328,10 +413,10 @@ class ModestCLI(UmbTool):
         self,
         input_file: pathlib.Path,
         output_file: pathlib.Path,
-        log_file: pathlib.Path
-    ):
+        log_file: pathlib.Path | None,
+    ) -> ReportedResults:
         assert log_file is not None
-        print(log_file)
+        logger.debug(f"Log file for modest transform: {log_file}")
         # Note that output_file must end with .umb for this to work.
         return self._call_mcsta(
             log_file=log_file,
@@ -342,52 +427,45 @@ class ModestCLI(UmbTool):
                 "--umb",
                 output_file.as_posix(),
                 "-D",
-                "--exhaustive"
+                "--exhaustive",
             ],
         )
 
-    def check_process(self):
+    def check_process(self) -> bool:
         result = self._call_mcsta(None, ["--version"])
         return result.exit_code == 0
 
 
 class StormCLI(UmbTool):
-    name = "StormCLI"
-    default_path = "/opt/storm"
+    name: ClassVar[str] = "StormCLI"
+    default_path: ClassVar[str] = "/opt/storm"
 
-    def __init__(self, location=None, extra_args=[], custom_identifier=None):
-        if location is None:
-            self._storm_path = __class__.default_path
-        else:
-            self._storm_path = location
-        self._extra_args = extra_args
-        self._custom_identifier = custom_identifier
+    def __init__(
+        self,
+        location: str | pathlib.Path | None = None,
+        extra_args: list[str] | None = None,
+        custom_identifier: str | None = None,
+    ) -> None:
+        super().__init__(extra_args=extra_args, custom_identifier=custom_identifier)
+        self._storm_path = location if location is not None else __class__.default_path
 
-    @property
-    def identifier(self):
-        return self._custom_identifier if self._custom_identifier is not None else self.name + "(" + ",".join(
-            self._extra_args
-        ) + ")"
-
-    def get_storm_path(self):
+    def get_binary_path(self) -> pathlib.Path:
         path = pathlib.Path(self._storm_path)
         if not path.exists():
             raise RuntimeError(f"Storm executable not found at {path}")
         return path
 
-    def _call_storm(self, log_file, args):
-        invocation = [self.get_storm_path().as_posix()] + args + self._extra_args
+    def _call_storm(
+        self, log_file: pathlib.Path | None, args: list[str]
+    ) -> ReportedResults:
+        invocation = [self.get_binary_path().as_posix()] + args + self._extra_args
         logger.info("Storm invocation: " + " ".join(invocation))
         result = subprocess.run(
             invocation,
             capture_output=True,
             text=True,
         )
-        reported_result = ReportedResults()
-        reported_result.exit_code = result.returncode
-        reported_result.timeout = False
-        reported_result.memout = False
-        reported_result.logfile = log_file
+        reported_result = ReportedResults.from_subprocess(result, log_file)
         if log_file is not None:
             parse_logfile_storm(result.stdout, reported_result)
             with open(log_file, "w+") as log:
@@ -399,7 +477,7 @@ class StormCLI(UmbTool):
         prism_file: pathlib.Path,
         output_file: pathlib.Path,
         log_file: pathlib.Path,
-    ):
+    ) -> ReportedResults:
         # Note that output_file must end with .umb for this to work.
         return self._call_storm(
             log_file,
@@ -413,7 +491,12 @@ class StormCLI(UmbTool):
             ],
         )
 
-    def check_umb(self, umb_file: pathlib.Path, log_file=pathlib.Path, properties=[]):
+    def check_umb(
+        self,
+        umb_file: pathlib.Path,
+        log_file: pathlib.Path | None = None,
+        properties: list[str] | None = None,
+    ) -> ReportedResults:
         args = ["--explicit-umb", umb_file.as_posix()]
         if properties is not None and len(properties) > 0:
             args += ["--prop", ";".join(properties)]
@@ -423,8 +506,8 @@ class StormCLI(UmbTool):
         self,
         input_file: pathlib.Path,
         output_file: pathlib.Path,
-        log_file: pathlib.Path
-    ):
+        log_file: pathlib.Path | None,
+    ) -> ReportedResults:
         # Note that output_file must end with .umb for this to work.
         return self._call_storm(
             log_file,
@@ -436,7 +519,7 @@ class StormCLI(UmbTool):
             ],
         )
 
-    def check_process(self):
+    def check_process(self) -> bool:
         result = self._call_storm(None, ["--version"])
         return result.exit_code == 0
 
@@ -444,24 +527,28 @@ class StormCLI(UmbTool):
 class UmbPython(UmbTool):
     name = "umbilib"
 
-    def __init__(self, mode="umb"):
+    def __init__(self, mode: Literal["ats", "umb"] = "umb") -> None:
         """
         :param mode: Either ats or umb
         """
+        super().__init__()
         self._mode = mode
 
-    def check_process(self):
+    def get_binary_path(self) -> pathlib.Path:
+        raise NotImplementedError  # UmbPython runs in-process, no binary.
+
+    def check_process(self) -> bool:
         return True
 
     def umb_to_umb(
         self,
         input_file: pathlib.Path,
         output_file: pathlib.Path,
-        log_file: pathlib.Path
-    ):
+        log_file: pathlib.Path | None,
+    ) -> ReportedResults:
         if self._mode == "ats":
-            ats = umbi.io.read_ats(input_file)
-            umbi.io.write_ats(ats, output_file)
+            ats = umbi.ats.read(input_file)
+            umbi.ats.write(ats, output_file)
             reported_results = ReportedResults()
             reported_results.exit_code = 0
             reported_results.model_info = {
@@ -470,8 +557,8 @@ class UmbPython(UmbTool):
             }
             return reported_results
         elif self._mode == "umb":
-            umb = umbi.io.read_umb(input_file)
-            umbi.io.write_umb(umb, output_file)
+            umb = umbi.umb.read(input_file)
+            umbi.umb.write(umb, output_file)
             reported_results = ReportedResults()
             reported_results.exit_code = 0
             reported_results.model_info = {
