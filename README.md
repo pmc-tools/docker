@@ -51,6 +51,14 @@ You are now in a jupyter notebook.
 
 You can go to getting_started.ipynb to get started with some opportunities that UMB offers.
 
+The notebook is paired (via jupytext) with its markdown representation,
+`getting_started.md`. Edit either file and keep the pair in sync with:
+```
+jupytext --sync getting_started.md
+```
+JupyterLab users can install the `jupytext` extension to load the notebook
+directly from the `.md` file.
+
 
 Umbtest
 -------

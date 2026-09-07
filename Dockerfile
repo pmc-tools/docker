@@ -32,7 +32,7 @@ ENV VIRTUAL_ENV=/opt/venv
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-RUN python3 -m pip install  --no-cache-dir  jupyter matplotlib scipy pytest
+RUN python3 -m pip install  --no-cache-dir  jupyter jupytext matplotlib scipy pytest
 
 #
 # CMake build type

@@ -1,0 +1,3 @@
+# Pair notebooks to MyST markdown for readable, diffable git history.
+# After editing either representation, run `jupytext --sync`.
+formats = "ipynb,md:myst"
