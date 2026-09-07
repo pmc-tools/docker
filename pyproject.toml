@@ -1,0 +1,5 @@
+[tool.pyright]
+include = ["umbtest", "tests", "main.py"]
+stubPath = "stubs"
+pythonVersion = "3.12"
+typeCheckingMode = "strict"
