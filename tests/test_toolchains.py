@@ -161,7 +161,7 @@ class TestTool:
     @pytest.mark.parametrize(
         "benchmark", _benchmarks(), ids=_benchmarkname
     )
-    def test_write_umbi_read(self, tool: _ToolSpec, benchmark: UmbBenchmark) -> None:
+    def test_write_umbi_umb_read(self, tool: _ToolSpec, benchmark: UmbBenchmark) -> None:
         tester = Tester()
         tester.set_chain(
             loader=_resolve(tool), transformer=umbi_py_umb, checker=_resolve(tool)
@@ -171,7 +171,6 @@ class TestTool:
     @pytest.mark.parametrize(
         "benchmark", _benchmarks(), ids=_benchmarkname
     )
-    @pytest.mark.skipif(True, reason="Not implemented yet.")
     def test_write_umbi_ats_read(self, tool: _ToolSpec, benchmark: UmbBenchmark) -> None:
         tester = Tester()
         tester.set_chain(
