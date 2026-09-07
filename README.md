@@ -15,6 +15,11 @@ On the container, you find
 - the contents of this repo, in particular, the umbtest library.
 - A jupyter notebook that is running. 
 
+The Dockerfile builds storm and prism from source. By default it tracks the
+latest `master` of the official storm repository (`stormchecker/storm`) and the
+`umb` branch of `davexparker/prism`; these can be overridden via the
+`storm_repo`/`storm_branch`/`prism_repo`/`prism_branch` build arguments. 
+
 ### Running the docker
 
 You can build the docker container yourself or obtain it by:
@@ -69,16 +74,26 @@ In particular, you can run:
 ```
 docker exec pmcdocker python -m pytest 
 ```
+By default the tests run on the small quick benchmark suite (10 models) in
+`umbtest.benchmarks.quick_prism_files`. To verify UMB support end-to-end across
+all models, run the full suite:
+```
+docker exec pmcdocker env UMB_TEST_MODELS=full python -m pytest
+```
+The CI workflow runs the full suite.
 
 ### Locally
 UMBTest is currently not available as a standalone package.
-However, you can run the scrips directly on your local machine.
+However, you can run the scripts directly on your local machine.
 
-1. Update the `tools.toml` file with your local location of the tools.
+1. Configure the tool paths. Copy `tools.toml.example` to `tools.toml` and fill in
+   your local installation paths (or set the `UMB_STORM`, `UMB_PRISM`, `UMB_MODEST`
+   environment variables). `tools.toml` is not tracked by git.
 2. `pip install umbi`
 3. - You can run `python -m pytest tests` to run all kind of tests
    - Run `python main.py` for a simple script
    - Or run the python notebook on your local jupyterserver (see above for details)
+   - Run `ruff check umbtest tests main.py` and `pyright` for static checks
 
 Continuous Integration
 -----------------------

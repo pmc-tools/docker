@@ -1,0 +1,12 @@
+["tools"]
+# Copy this file to tools.toml and adapt the paths to your local installation.
+# Note that for storm, we ask for the path to the binary
+storm = "/path/to/storm"
+# For prism, we ask the location of the directory.
+prism = "/path/to/prism-umb/"
+# For modest, we ask for the path to the binary
+modest = "/path/to/modest"
+
+["byproducts"]
+tmpfolder = "/tmp"
+cleanup = 1
