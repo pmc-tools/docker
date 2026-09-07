@@ -18,3 +18,4 @@ docker.log
 
 # Jupyter
 .ipynb_checkpoints/
+getting_started.ipynb

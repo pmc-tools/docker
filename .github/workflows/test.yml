@@ -34,33 +34,20 @@ jobs:
           pip install pyright
           pyright
 
-      - name: Check notebook/markdown pair is in sync
+      - name: Check notebook source is well-formed
         run: |
-          pip install jupytext
+          pip install jupytext nbformat
           python - <<'PY'
-          import json
-
-          import jupytext
           import nbformat
 
-          def cells(path):
-              nb = nbformat.from_dict(jupytext.read(path))
-              for c in nb.cells:
-                  c.execution_count = None
-                  c.metadata = {}
-              d = json.loads(nbformat.writes(nb))["cells"]
-              for c in d:
-                  c.pop("id", None)
-                  if c.get("outputs") == []:
-                      c.pop("outputs", None)
-              return d
+          import jupytext
 
-          expected = cells("getting_started.md")
-          actual = cells("getting_started.ipynb")
-          assert expected == actual, (
-              "getting_started.md and getting_started.ipynb differ; "
-              "run: jupytext --sync getting_started.md"
-          )
+          nb = jupytext.read("getting_started.md")
+          ipynb = jupytext.writes(nb, fmt="ipynb")
+          reloaded = nbformat.reads(ipynb, as_version=4)
+          assert nbformat.validate(reloaded) is None
+          assert len(reloaded.cells) > 0
+          print(f"notebook OK: {len(reloaded.cells)} cells")
           PY
 
   build:

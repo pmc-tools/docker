@@ -49,15 +49,16 @@ You can connect to `localhost:8000` (or another port, if you changed it) in your
 The notebook will ask for a token. Paste the token you just copied. 
 You are now in a jupyter notebook. 
 
-You can go to getting_started.ipynb to get started with some opportunities that UMB offers.
+You can go to `getting_started.ipynb` (in the docker container) to get started
+with some opportunities that UMB offers.
 
-The notebook is paired (via jupytext) with its markdown representation,
-`getting_started.md`. Edit either file and keep the pair in sync with:
+The notebook is written in markdown (`getting_started.md`, the tracked source of
+truth) and materialized as `.ipynb` when the container image is built. Locally,
+regenerate the notebook with:
 ```
-jupytext --sync getting_started.md
+jupytext --to ipynb getting_started.md
 ```
-JupyterLab users can install the `jupytext` extension to load the notebook
-directly from the `.md` file.
+JupyterLab users can install the jupytext extension to open the `.md` directly.
 
 
 Umbtest

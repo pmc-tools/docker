@@ -82,6 +82,9 @@ WORKDIR /opt/umb
 
 # Copy the content of the current local repository into the Docker image
 COPY . .
+# The notebook sources live in markdown; materialize the .ipynb the Jupyter
+# server will serve from the paired text representation.
+RUN jupytext --to ipynb getting_started.md
 COPY .docker/tools.toml tools.toml
 
 CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--port=8000", "--no-browser", "--allow-root"]
