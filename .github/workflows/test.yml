@@ -31,7 +31,7 @@ jobs:
 
       - name: Run pyright
         run: |
-          pip install pyright==1.1.408
+          pip install pyright==1.1.408 pytest
           pyright
 
       - name: Check notebook source is well-formed
