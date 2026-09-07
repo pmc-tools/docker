@@ -1,35 +1,42 @@
 name: Test UMB
 
-
 on:
   schedule:
     - cron: '26 8 * * *'
   push:
     branches: [ "main" ]
-    # Publish semver tags as releases.
-    tags: [ 'v*.*.*' ]
   pull_request:
     branches: [ "main" ]
   # to trigger the workflow manually
   workflow_dispatch:
 
-env:
-  # Use docker.io for Docker Hub if empty
-  REGISTRY: ghcr.io
-  # github.repository as <account>/<repo>
-  IMAGE_NAME: ${{ github.repository }}
-
 
 jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run ruff
+        run: |
+          pip install ruff
+          ruff check umbtest tests main.py
+
+      - name: Run pyright
+        run: |
+          pip install pyright
+          pyright
+
   build:
     name: Build on ${{ matrix.platform }}
     runs-on: ${{ matrix.runs-on }}
-    permissions:
-      contents: read
-      packages: write
-      # This is used to complete the identity challenge
-      # with sigstore/fulcio when running outside of PRs.
-      id-token: write
     strategy:
       matrix:
         include:
@@ -54,7 +61,7 @@ jobs:
         run: docker run -d -it --name ci pmctools/umbi:ci
 
       - name: Run tests
-        run: docker exec ci bash -c "cd /opt/umb; python -m pytest --junit-xml=test-results.xml tests"
+        run: docker exec ci bash -c "cd /opt/umb; UMB_TEST_MODELS=full python -m pytest --junit-xml=test-results.xml tests"
 
       - name: Download test results
         if: always()
