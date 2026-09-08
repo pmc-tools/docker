@@ -15,10 +15,13 @@ On the container, you find
 - the contents of this repo, in particular, the umbtest library.
 - A jupyter notebook that is running. 
 
-The Dockerfile builds storm and prism from source. By default it tracks the
-latest `master` of the official storm repository (`stormchecker/storm`) and the
-`umb` branch of `davexparker/prism`; these can be overridden via the
-`storm_repo`/`storm_branch`/`prism_repo`/`prism_branch` build arguments. 
+The Dockerfile builds prism from source (the `umb` branch of
+`davexparker/prism`, overridable via the `prism_repo`/`prism_branch` build
+arguments) and downloads Modest. Storm is not built from source: the image
+is based on the official prebuilt `movesrwth/storm:ci` container (a daily
+snapshot of Storm `master`, with UMB support), which saves a long Storm
+compilation. The base image can be overridden via the `BASE_IMAGE` build
+argument. 
 
 ### Running the docker
 

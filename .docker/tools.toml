@@ -1,6 +1,7 @@
 ["tools"]
-# Note that for storm, we ask for the path to the binary
-storm = "/opt/storm/build/bin/storm"
+# Note that for storm, we ask for the path to the binary.
+# The storm image conveniently installs it at /usr/local/bin/storm.
+storm = "/usr/local/bin/storm"
 # For prism, we ask the location of the directory.
 prism = "/opt/prism/"
 # For modest, we ask for the path to the binary
