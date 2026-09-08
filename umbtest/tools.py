@@ -284,7 +284,7 @@ class PrismCLI(UmbTool):
             log_subprocess_result = subprocess.run(
                 [
                     self.get_prism_log_extract_script().as_posix(),
-                    "--fields=import_model_file,states,transitions",
+                    "--fields=states",
                     log_file.as_posix(),
                 ],
                 capture_output=True,
@@ -299,10 +299,12 @@ class PrismCLI(UmbTool):
                 logger.warning(f"Issues parsing logfile yielded error code {log_subprocess_result.returncode}.")
             data = log_subprocess_result.stdout
             try:
-                data = log_subprocess_result.stdout.split("\n")[1].split(",")
+                values = log_subprocess_result.stdout.splitlines()
+                if len(values) < 2:
+                    raise ValueError("extract returned no data row")
+                row = values[1].split(",")
                 reported_result.model_info = {
-                    "states": int(data[1]),
-                    "transitions": int(data[2]),
+                    "states": int(row[-1]),
                 }
             except Exception as e:  # noqa: BLE001
                 logger.warning(f"Issues parsing the model info data {data}. Got exception: {e}")
